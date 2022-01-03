@@ -31,7 +31,7 @@ DUMP_DIR=`cat latest`
 BUCKET="matrix-dump-restore"
 # Need to make sure target (destination folder exists on the bucket.
 
-SOURCE="/tmp/${DUMP_DIR}/"
+SOURCE="/tmp/rds/${DUMP_DIR}/"
 DEST="s3://${BUCKET}/rds/${DUMP_DIR}/"
 
 

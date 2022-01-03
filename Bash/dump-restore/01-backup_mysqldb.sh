@@ -19,26 +19,42 @@ function log {
         echo "[$(date --rfc-3339=seconds)]: $*"
 }
 
+function get_db_list {
+    SQL="SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN"
+    SQL="${SQL} ('mysql', 'information_schema', 'performance_schema', 'sys')"
+
+    DBLISTFILE=/tmp/databases_to_dump.txt
+    mysql -ANe "${SQL}" > ${DBLISTFILE}
+
+    DBLIST=""
+    for DB in `cat ${DBLISTFILE}`  ; do DBLIST="${DBLIST} ${DB}" ; done
+
+    echo ${DBLIST}
+    return
+}
+
 logsetup
 log "****************************************"
 log "Begin backup-mysqldb.sh"
 
 # Destination folder where backups are stored
 DUMP_DIR=rds-$(date +"%Y-%m-%d")
-DEST=/tmp/${DUMP_DIR}
-echo ${DUMP_DIR} > ${DEST}/latest
+DEST=/tmp/rds/${DUMP_DIR}
+LDIR=/tmp/rds
+echo ${DUMP_DIR} > ${LDIR}/latest
 
 CURRDATE=$(date +"%F")
 
+DBLIST=`get_db_list`
+log `echo "DBLLIST: ${DBLIST}"`
 
-
-[ ! -d $DEST ] && mkdir -p $DEST
+[ ! -d ${DEST} ] && mkdir -p ${DEST}
 
 FILE="${DEST}/dump.sql"
 FILEDATE=$(date -r $FILE +"%F")
 
 log "----------------------------------------"
-log "Processing All DBs to $FILE ... "
+log "Dumping DBs: ${DBLIST} to ${FILE} ... "
 log "----------------------------------------"
 # Be sure to make one backup per day
 #[ -f $FILE ] && FILEDATE=$(date -r $FILE +"%F")
@@ -46,15 +62,15 @@ log "----------------------------------------"
 
 [ -f ${FILE} ] && mv "${FILE}" "${FILE}.old"
 log "Dumping DB START"
-mysqldump --port=3306 --default-character-set=utf8 \
-          --protocol=tcp --triggers --routines --events \
-          --column-statistics=0 --all-databases > "${FILE}"
+mysqldump --port=3306 --default-character-set=utf8 --databases  \
+          --protocol=tcp --databases --triggers --routines \
+          --events --column-statistics=0 --set-gtid-purged=OFF ${DBLIST} > "${FILE}"
 
-log "Dumping DB COMPLETE.  "
+log "Dumping DBs COMPLETE.  "
 rm -f "${FILE}.old"
 
 echo "${DUMP_DIR}" > latest
-log "Databasexs backup complete."
+log "Databases backup complete."
 
 
 log `ls -lh ${DEST}/dump.sql`

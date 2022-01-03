@@ -23,6 +23,7 @@ resource "aws_instance" "ec2-source" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x dump-restore/*.sh",
+      "echo 'banner Source' >> ~ubuntu/.profile",
     ]
 
   }

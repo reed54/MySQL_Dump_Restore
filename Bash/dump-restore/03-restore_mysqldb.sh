@@ -52,7 +52,7 @@ db=dump.sql
 
 FILE="s3://${SRC_BUCKET}/${DSK_DIR}/`cat latest`/${db}"
 log "----------------------------------------" 
-log "Restoring DB from $FILE ... "
+log "Restoring DBs from $FILE ... "
 log "-------------"
 log `fetch_file`
 log `DUMP=${DSK_DIR}/`cat latest`/${db}`

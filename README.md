@@ -1,13 +1,58 @@
 
 # MySQL Dump Restore
 
-This repository consists of _bash_ scripts and _Terraform_ configurations to implement infrastructure in **two** AWS accounts.  The purpose of which is to **mysqldump** and RDS instance in one account (SOURCE) and restore the same database in another account (TARGET) with a similar RDS instance.
+This repository consists of _bash_ scripts and _Terraform_ configurations to implement infrastructure in **two** AWS accounts.  The purpose of which is to **mysqldump** an RDS instance in one account (SOURCE) and restore the resulting dumped databases in another account (TARGET) with a similar RDS instance.
 
-## High-Level Process  
+## The  Process  
 
 1. Clone this repository into your local workspace.
 
-2. Collect parameters related to your AWS accounts.  Details about the SOURCE and TARGET accounts, the name of the S3 bucket to be used as destination/source of the database dump.  You will need the host strings of your RDS databases as well as root username and password.
+```
+$ git clone git@github.com:reed54/MySQL_Dump_Restore.git
+Cloning into 'MySQL_Dump_Restore'...
+remote: Enumerating objects: 90, done.
+remote: Counting objects: 100% (90/90), done.
+remote: Compressing objects: 100% (61/61), done.
+remote: Total 90 (delta 27), reused 85 (delta 26), pack-reused 0
+Receiving objects: 100% (90/90), 2.72 MiB | 6.59 MiB/s, done.
+Resolving deltas: 100% (27/27), done.
+```
+
+2. Collect parameters related to your AWS accounts.  Details about the SOURCE and TARGET accounts, the name of the S3 bucket to be used as destination/source of the database dump.  You will need the host strings of your RDS databases as well as root username and password.  Edit the appropriate **variables.tf** files.
+
+### Source EC2 (Terraform/ec2/source_ec2/variables.tf)  
+
+|  Variable         |     Description                                                |
+|-------------------|----------------------------------------------------------------|
+| region            | AWS region designation.  e.g., us-east-2                       |
+| profile           | Profile within local ~/.aws/credentials file.                  |
+| bucket_name       | Name of the bucket to be shared by the SOURCE and TARGET.      |
+| amz-ubuntu-ami    | AMI for both SOURCE and TARGET EC2s                            |
+| source_key_name   | Source EC2 key-pair.  The KP must exist before Terraform apply.|
+| source_account    | Account number for SOURCE Account.                             |
+| target_account    | Account number for TARGET Account.                             |
+| vpc_id            | VPC ID where SOURCE RDS instance is located.                   |
+| ec2_subnet_id     | Public Subnet within the VPC for the SOURCE RDS.               |
+|                   |                                                                |
+
+### Target EC2 (Terraform/ec2/target_ec2/variables.tf)  
+
+
+|  Variable         |     Description                                                |
+|-------------------|----------------------------------------------------------------|
+| region            | TARGET AWS region designation.  e.g., us-east-2                |
+| profile           | TARGET Profile within local ~/.aws/credentials file.           |
+|                   |                                                                |
+| amz-ubuntu-ami    | AMI for both SOURCE and TARGET EC2s                            |
+| target_key_name   | Source EC2 key-pair.  The KP must exist before Terraform apply.|
+| source_account    | Account number for SOURCE Account.                             |
+| target_account    | Account number for TARGET Account.                             |
+| vpc_id            | VPC ID where SOURCE RDS instance is located.                   |
+| ec2_subnet_id     | Public Subnet within the VPC for the TARGET RDS.               |
+|                   |                                                                |
+
+If the user wishes to setup a complete test environments with two EC2 virtual machines AND small RDS instances, Terraform configurations are included in _Terraform/rds_.
+
 
 3. Apply the information gathered in step #2 to the appropriate _variables.tf_ files.
 
@@ -20,6 +65,7 @@ source_ec2/variables.tf  target_ec2/variables.tf
 4. Deploy (terraform apply) the SOURCE EC2, S3 and the TARGET EC2.
 ```
 $ cd MySQL_Dump_Restore/Terraform/ec2/source_ec2
+$ terraform init
 $ terraform plan
 $ terraform apply
 ```
@@ -82,116 +128,113 @@ $ ./02-sync-sql-to-s3.sh
 10. Login to the TARGET EC2 and execute the **02-restore_mysqldb.sh**
 ```
 $ cd dump-restore
-
-
 ```
 
 ## Detailed Instructions
 
-1. Clone this repository into a your local workspace.
+1. Preparations:
+ - Make sure you have Key-Pairs for both the SOURCE and TARGET accounts.
+ - Familiarize yourself with the VPC security gateways and route tables for your environments.
+ - The Terraform configurations should help speed up the process.  Hopefully!
+
+
+2. Clone this repository into a your local workspace.
 
    $ git clone https://github.com/reed54/MySQL_Dump_Restore.git
 
-2. Parameters related to your accounts will have to be set in the Terraform configuration files.
-
-    a. Your region, e.g., "us-west-2"  
-    
-    b. The profile of the CLI access to the SOURCE account (inside your **~/.aws/credentials**).  By default this set to "SOURCE."  
-
-    c. The bucket name which will be used for the dump/restore location.  A policy will be applied to this bucket to allow both SOURCE and TARGET accounts access to this S3.
-
-    d.
+3. Parameters related to your accounts will have to be set in the Terraform configuration files.  Refer to the "Variable" tables above.
 
 
+4.  If you have used Terraform before, here is a snippit of the process:
 
-After cloning this repository onto a user workstation
+```
+$ cd Terraform/source_ec2
+# Edit variables.tf
+$ terraform init
+$ terraform plan
+# Review the plan
+$ terraform apply
 
-Bash scripts to run mysqldump on  selected databases and upload SQL files to S3.
+$ cd ../target_ec2
+# Repeat the steps above.
+```
+
+What follows is a step-by-step walkthrough using the Bash scripts to transfer the databases from SOURCE to TARGET.
     
  
     Centennial Data Science - James D. Reed April 28, 2021
-## 00-create-config.sh
+## Backup the SOURCE Databases
 
-This script allows the user to setup MySQL parameters:
-  * **login path** - the parameter that determines which identity will be used.
-  * **host** - this is the host string that will be used to access the database(s).
-  * **user** - username used to log into the MySQL **host**.
-  * **password** - this parameter is a placeholder to prompt for the password when the scripts is executed.
+### 01-backup_mysqldb.sh
 
-Once the _mysql_config_editor_ is executed the parameters have been encoded into file **.mylogin.cnf**.  For more information on this facility **mysql_config_editor** -- [MySQL Configuration Utility](https://dev.mysql.com/doc/refman/8.0/en/mysql-config-editor.html)
+```
+ubuntu@ip-172-26-0-213:~/dump-restore$ ./01-backup_mysqldb.sh
+[2022-01-03 21:29:53+00:00]: ****************************************
+[2022-01-03 21:29:53+00:00]: Begin backup-mysqldb.sh
+[2022-01-03 21:29:53+00:00]: DBLLIST: employees
+[2022-01-03 21:29:53+00:00]: ----------------------------------------
+[2022-01-03 21:29:53+00:00]: Dumping DBs: employees to /tmp/rds/rds-2022-01-03/dump.sql ...
+[2022-01-03 21:29:53+00:00]: ----------------------------------------
+[2022-01-03 21:29:53+00:00]: Dumping DB START
+[2022-01-03 21:29:57+00:00]: Dumping DBs COMPLETE.
+[2022-01-03 21:29:57+00:00]: Databases backup complete.
+[2022-01-03 21:29:57+00:00]: -rw-rw-r-- 1 ubuntu ubuntu 161M Jan 3 21:29 /tmp/rds/rds-2022-01-03/dump.sql
+[2022-01-03 21:29:57+00:00]: Complete execution backup-mysqldb.sh
+[2022-01-03 21:29:57+00:00]: ****************************************
+```
 
+This script executes mysqldump on all of the databases in the RDS instance, except for the following databases:
++ mysql
++ information_schema 
++ performance_schema
++ sys
 
-## 01-backup_mysqldb.sh
+No arguments are required. A log file is appended to *backup-mysqldb.log*.  
 
-This scrip[t executes mysqldump on selected MySQL schemas (databases).  No arguments are required. A log file is appended to *backup-mysqldb.log*.  Run time on the current five databases takes less than ten minutes.:
-    1. ars
-    2. edtrakv3
-    3. piwik
-    4. surveyengine
-    5. userdb
-
-### Execution - log is echoed on standard output.:
-
-    ** $ ./01-backup_mysqldb.sh**
-     [2021-05-08 18:27:39+00:00]: *************************************************************************************
-    [2021-05-08 18:27:39+00:00]: Begin backup-mysqldb.sh
-    [2021-05-08 18:27:39+00:00]: DB to be dumped: ars
-    [2021-05-08 18:27:39+00:00]: DB to be dumped: edtrakv3
-    [2021-05-08 18:27:39+00:00]: DB to be dumped: piwik
-    [2021-05-08 18:27:39+00:00]: DB to be dumped: surveyengine
-    [2021-05-08 18:27:39+00:00]: DB to be dumped: userdb
-    [2021-05-08 18:27:39+00:00]: --------------------------------------------------------------------------------------
-    [2021-05-08 18:27:39+00:00]: Processing DB ars to /tmp/rds-2021-05-08/ars.sql ...
-    [2021-05-08 18:27:39+00:00]: -------------
-    [2021-05-08 18:27:39+00:00]: Dumping DB ars  START
-    [2021-05-08 18:28:47+00:00]: Dumping DB ars  COMPLETE.
-    [2021-05-08 18:28:47+00:00]: --------------------------------------------------------------------------------------
-    [2021-05-08 18:28:47+00:00]: Processing DB edtrakv3 to /tmp/rds-2021-05-08/edtrakv3.sql ...
-    [2021-05-08 18:28:47+00:00]: -------------
-    [2021-05-08 18:28:47+00:00]: Dumping DB edtrakv3  START
-    [2021-05-08 18:28:53+00:00]: Dumping DB edtrakv3  COMPLETE.
-    [2021-05-08 18:28:53+00:00]: --------------------------------------------------------------------------------------
-    [2021-05-08 18:28:53+00:00]: Processing DB piwik to /tmp/rds-2021-05-08/piwik.sql ...
-    [2021-05-08 18:28:53+00:00]: -------------
-    [2021-05-08 18:28:53+00:00]: Dumping DB piwik  START
-	[2021-05-08 18:30:35+00:00]: Dumping DB piwik  COMPLETE.
-	[2021-05-08 18:30:35+00:00]: --------------------------------------------------------------------------------------
-	[2021-05-08 18:30:35+00:00]: Processing DB surveyengine to /tmp/rds-2021-05-08/surveyengine.sql ...
-	[2021-05-08 18:30:35+00:00]: -------------
-	[2021-05-08 18:30:35+00:00]: Dumping DB surveyengine  START
-	[2021-05-08 18:31:15+00:00]: Dumping DB surveyengine  COMPLETE.
-	[2021-05-08 18:31:15+00:00]: --------------------------------------------------------------------------------------
-	[2021-05-08 18:31:15+00:00]: Processing DB userdb to /tmp/rds-2021-05-08/userdb.sql ...
-	[2021-05-08 18:31:15+00:00]: -------------
-	[2021-05-08 18:31:15+00:00]: Dumping DB userdb  START
-	[2021-05-08 18:32:14+00:00]: Dumping DB userdb  COMPLETE.
-	[2021-05-08 18:32:14+00:00]: Databases backup complete.
-	[2021-05-08 18:32:14+00:00]: -rw-rw-r-- 1 ubuntu ubuntu 3.9G May 8 18:28 /tmp/rds-2021-05-08/ars.sql
-	[2021-05-08 18:32:14+00:00]: -rw-rw-r-- 1 ubuntu ubuntu 287M May 8 18:28 /tmp/rds-2021-05-08/edtrakv3.sql
-	[2021-05-08 18:32:14+00:00]: -rw-rw-r-- 1 ubuntu ubuntu 5.9G May 8 18:30 /tmp/rds-2021-05-08/piwik.sql
-	[2021-05-08 18:32:14+00:00]: -rw-rw-r-- 1 ubuntu ubuntu 2.3G May 8 18:31 /tmp/rds-2021-05-08/surveyengine.sql
-	[2021-05-08 18:32:14+00:00]: -rw-rw-r-- 1 ubuntu ubuntu 2.9G May 8 18:32 /tmp/rds-2021-05-08/userdb.sql
-	[2021-05-08 18:32:14+00:00]: Complete execution backup-mysqldb.sh
-	[2021-05-08 18:32:14+00:00]: ****************************************************************************************
-
-## 02-Sync.sh
+## Synchronize the databases to the S3
+### 02-sync-sql-to-s3.sh
 This script syncronizes the latest backup to S3 **array-production-data**.
 
-### Execution - log is echoed on standard output.:
+```
+[ubuntu@ip-172-26-0-213:~/dump-restore$ ./02-sync-sql-to-s3.sh
+[2022-01-03 21:46:44+00:00]: ****************************************
+[2022-01-03 21:46:44+00:00]: Begin 02-sync-sql-to-s3.sh
+[2022-01-03 21:46:44+00:00]:
+[2022-01-03 21:46:44+00:00]: ----------------------------------------
+[2022-01-03 21:46:44+00:00]: Synching /tmp/rds/rds-2022-01-03/ to s3://matrix-dump-restore/rds/rds-2022-01-03/ ...
+[2022-01-03 21:46:44+00:00]: ----------------------------------------
+[2022-01-03 21:46:44+00:00]:
+[2022-01-03 21:46:46+00:00]:
+[2022-01-03 21:46:47+00:00]: 2022-01-03 21:46:46 168375779 rds/rds-2022-01-03/dump.sql
+[2022-01-03 21:46:47+00:00]: End   02-sync-sql-to-s3.sh
+[2022-01-03 21:46:47+00:00]: ****************************************
+[2022-01-03 21:46:47+00:00]:
+```
 
-    **$ ./02-Sync.sh**
-    [2021-05-08 18:34:43+00:00]: ****************************************************************************************
-	[2021-05-08 18:34:43+00:00]: Begin 02-Sync.sh
-	[2021-05-08 18:34:43+00:00]:
-	[2021-05-08 18:34:43+00:00]: ----------------------------------------------------------------------------------------
-	[2021-05-08 18:34:43+00:00]: Synching /tmp/rds-2021-05-08/ to s3://array-production-data/rds/rds-2021-05-08/ ...
-	[2021-05-08 18:34:43+00:00]: -----------------------------------------
-	[2021-05-08 18:39:10+00:00]:
-	[2021-05-08 18:39:11+00:00]: 2021-05-08 18:34:45 4178245876 rds/rds-2021-05-08/ars.sql 2021-05-08 18:34:57 300651579 rds/rds-2021-05-08/edtrakv3.sql 2021-05-08 18:34:51 6251338573 rds/rds-2021-05-08/piwik.sql 2021-05-08 18:35:03 2439845545 rds/rds-2021-05-08/surveyengine.sql 2021-05-08 18:35:11 3049009811 rds/rds-2021-05-08/userdb.sql
-	[2021-05-08 18:39:11+00:00]: End   02-Sync.sh
-	[2021-05-08 18:39:11+00:00]: ****************************************************************************************
 
+## Restore SOURCE Databases onto TARGET RDS instance
+### ./03-restore_mysqldb.sh
+This script restores the dump of databases to the TARGET RDS instance.  Note, this step is completed from the TARGET EC2.
 
+```
+ubuntu@ip-172-26-0-213:~/dump-restore$ ./02-sync-sql-to-s3.sh
+[2022-01-03 21:46:44+00:00]: ****************************************
+[2022-01-03 21:46:44+00:00]: Begin 02-sync-sql-to-s3.sh
+[2022-01-03 21:46:44+00:00]:
+[2022-01-03 21:46:44+00:00]: ----------------------------------------
+[2022-01-03 21:46:44+00:00]: Synching /tmp/rds/rds-2022-01-03/ to s3://matrix-dump-restore/rds/rds-2022-01-03/ ...
+[2022-01-03 21:46:44+00:00]: ----------------------------------------
+[2022-01-03 21:46:44+00:00]:
+[2022-01-03 21:46:46+00:00]:
+[2022-01-03 21:46:47+00:00]: 2022-01-03 21:46:46 168375779 rds/rds-2022-01-03/dump.sql
+[2022-01-03 21:46:47+00:00]: End   02-sync-sql-to-s3.sh
+[2022-01-03 21:46:47+00:00]: ****************************************
+[2022-01-03 21:46:47+00:00]:
+```
+                     
+## Your Feedback will be Appreciated
 
+As is often said, hardware eventually breaks and software eventually works.  Let me know your experiences with this work in progress.
 
-~                                                                                                                       ~                       
+Jim Reed/Centennial Data Science  
+jdreed1954@hotmail.com
