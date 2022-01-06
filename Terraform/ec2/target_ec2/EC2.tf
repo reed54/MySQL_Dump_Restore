@@ -1,3 +1,6 @@
+//
+// MySQL Dump Restore = This is the TARGET piece of the configuration.
+//
 provider "aws" {
   profile = var.profile
   region  = var.region
@@ -6,7 +9,7 @@ provider "aws" {
 
 // AWS Instance Definition
 resource "aws_instance" "ec2-target" {
-  ami                    = var.amz-linux2-ami
+  ami                    = var.amz-ubuntu-ami
   instance_type          = "t3.micro"
   subnet_id              = var.ec2_subnet_id
   vpc_security_group_ids = [aws_security_group.Matrix-SG.id]
@@ -16,13 +19,25 @@ resource "aws_instance" "ec2-target" {
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
   provisioner "file" {
-    source      = "/home/jdreed/code/EM/dump-restore"
-    destination = "/home/ec2-user/"
+    source      = "../../../Bash/dump-restore"
+    destination = "/home/ubuntu/"
+  }
+
+  provisioner "file" {
+    source      = "/tmp/bucket_id"
+    destination = "/tmp/bucket_id"
+  }
+
+  provisioner "file" {
+    source      = "../common/target_my_cnf"
+    destination = "/home/ubuntu/.my.cnf"
   }
 
   provisioner "remote-exec" {
     inline = [
       "chmod +x dump-restore/*.sh",
+      "echo 'banner Target' >> ~ubuntu/.profile",
+      "echo  `cat /tmp/bucket_id` >> ~ubuntu/.profile"
     ]
 
   }
@@ -30,7 +45,7 @@ resource "aws_instance" "ec2-target" {
   connection {
     type        = "ssh"
     host        = aws_instance.ec2-target.public_ip
-    user        = "ec2-user"
+    user        = "ubuntu"
     private_key = file("~/.ssh/ReedCDS2020.pem")
     timeout     = "4m"
   }

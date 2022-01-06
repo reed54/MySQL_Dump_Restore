@@ -1,3 +1,6 @@
+//
+// MySQL Dump Restore = This is the SOURCE piece of the configuration.
+//
 provider "aws" {
   profile = var.profile
   region  = var.region
@@ -20,10 +23,21 @@ resource "aws_instance" "ec2-source" {
     destination = "/home/ubuntu/"
   }
 
+  provisioner "file" {
+    source      = "/tmp/bucket_id"
+    destination = "/tmp/bucket_id"
+  }
+
+  provisioner "file" {
+    source      = "../common/source_my_cnf"
+    destination = "/home/ubuntu/.my.cnf"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "chmod +x dump-restore/*.sh",
       "echo 'banner Source' >> ~ubuntu/.profile",
+      "echo  `cat /tmp/bucket_id` >> ~ubuntu/.profile"
     ]
 
   }

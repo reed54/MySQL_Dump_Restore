@@ -10,12 +10,12 @@ variable "profile" {
   default     = "TARGET"
 }
 
-
-variable "amz-linux2-ami" {
+variable "amz-ubuntu-ami" {
   description = "AMI for both SOURCE and TARGET EC2s"
   type        = string
-  default     = "ami-00f7e5c52c0f43726"
+  default     = "ami-0892d3c7ee96c0bf7" # Changed to Ubuntu 20.04 LTS
 }
+
 
 variable "target_key_name" {
   description = "Name of key pair."

@@ -3,12 +3,10 @@
 #
 # 03-restore_mysqldb.sh : Restore mysqldump. 
 #
-#   Centennial Data Science - James D. Reed May 10, 2021 
+#   Centennial Data Science - James D. Reed January 5, 2022
 #
 LOGFILE="log/restore-mysqldb.log"
 RETAIN_NUM_LINES=100000
-DSK_DIR=/tmp/rds
-S3_LATEST="s3://${SRC_BUCKET}/rds/latest"
 
 
 function logsetup {
@@ -33,7 +31,7 @@ function fetch_file {
     	echo "$DSK_DIR/`cat latest`/${db} exists. No need to download it from S3."
 	else
 	    echo "Download from S3 ${FILE}"
-		aws s3 cp "s3://${SRC_BUCKET}/rds/`cat latest`/dump.sql" ${DSK_DIR}/`cat latest`/${db} --quiet
+		aws s3 cp "s3://${BUCKET}/rds/`cat latest`/dump.sql" ${DSK_DIR}/`cat latest`/${db} --quiet
 	fi
 
 }
@@ -43,19 +41,19 @@ log "****************************************"
 log "Begin restore-mysqldb.sh"
 
 
-# Destination folder where backups are stored
-SRC_BUCKET="matrix-dump-restore"
+# Bucket Name comes from /tmp/bucket_id, which should be expressed in ~ubuntu.profile
+BUCKET=${DUMP_RESTORE_BUCKET}
 DSK_DIR="/tmp/rds/"
-S3_LATEST="s3://${SRC_BUCKET}/rds/latest"
+S3_LATEST="s3://${BUCKET}/rds/latest"
 
 db=dump.sql
 
-FILE="s3://${SRC_BUCKET}/${DSK_DIR}/`cat latest`/${db}"
+FILE="s3://${BUCKET}/${DSK_DIR}/`cat latest`/${db}"
 log "----------------------------------------" 
 log "Restoring DBs from $FILE ... "
 log "-------------"
 log `fetch_file`
-log `DUMP=${DSK_DIR}/`cat latest`/${db}`
+DUMP=${DSK_DIR}/`cat latest`/${db}
 log "Restoring DB START from ${DUMP}"
 mysql --protocol=tcp --port=3306  \
 	--default-character-set=utf8 \

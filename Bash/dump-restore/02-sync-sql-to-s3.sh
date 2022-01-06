@@ -5,11 +5,11 @@
 #
 #   02-sync-sql-to-s3.sh: Synchronize files in /tmp/ directory to S3 bucket array-production-data
 #
-#   Centennial Data Science - James D. Reed April 29, 2021
+#   Centennial Data Science - James D. Reed January 5, 2022
 #
 #
 
-LOGFILE="log/sync.-sql-to-s3.log"
+LOGFILE="log/sync-sql-to-s3.log"
 RETAIN_NUM_LINES=100000
 
 function logsetup {
@@ -28,8 +28,8 @@ log "Begin 02-sync-sql-to-s3.sh"
 
 DUMP_DIR=`cat latest`
 
-BUCKET="matrix-dump-restore"
-# Need to make sure target (destination folder exists on the bucket.
+# Bucket Name comes from /tmp/bucket_id, which should be expressed in ~ubuntu.profile
+BUCKET=${DUMP_RESTORE_BUCKET}
 
 SOURCE="/tmp/rds/${DUMP_DIR}/"
 DEST="s3://${BUCKET}/rds/${DUMP_DIR}/"

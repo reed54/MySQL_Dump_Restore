@@ -3,7 +3,7 @@
 #
 # get_file.sh 
 #
-#   Centennial Data Science - James D. Reed May 10, 2021 
+#   Centennial Data Science - James D. Reed January 5, 2022
 #
 LOGFILE="log/get_files.log"
 RETAIN_NUM_LINES=100000
@@ -42,16 +42,15 @@ log `rm -v ${TMP_DIR}/*`
 
 
 # Source of files in S3 
-SRC_BUCKET="array-production-data"
+BUCKET=${DUMP_RESTORE_BUCKET}
 
 # Directory on S3 holding the RDS files.
-#DUMP_DIR='rds/rds-2021-05-22'
 DUMP_DIR="rds/`cat latest`"
 
-DATABASES="surveyengine ars edtrakv3 piwik userdb"
+DATABASES="dump"
 
 for db in $DATABASES; do
-  	FILE="s3://${SRC_BUCKET}/${DUMP_DIR}/$db.sql"
+  	FILE="s3://${BUCKET}/${DUMP_DIR}/$db.sql"
 	log "DB to be fetched: $db"
 	log `fetch_file`
 done

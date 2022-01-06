@@ -4,7 +4,7 @@
 # 01-backup-mysqldb.sh : Execute mysqldump on selected databases.  Output is one sql script per DB
 #      that can be used to reconstitute the database in another environment.
 #
-#   Centennial Data Science - James D. Reed December 30, 2021
+#   Centennial Data Science - James D. Reed January 5, 2022
 #
 LOGFILE="log/backup-mysqldb.log"
 RETAIN_NUM_LINES=100000
@@ -56,9 +56,6 @@ FILEDATE=$(date -r $FILE +"%F")
 log "----------------------------------------"
 log "Dumping DBs: ${DBLIST} to ${FILE} ... "
 log "----------------------------------------"
-# Be sure to make one backup per day
-#[ -f $FILE ] && FILEDATE=$(date -r $FILE +"%F")
-#[ "$FILEDATE" == "$CURRDATE" ] && continue
 
 [ -f ${FILE} ] && mv "${FILE}" "${FILE}.old"
 log "Dumping DB START"
@@ -66,7 +63,7 @@ mysqldump --port=3306 --default-character-set=utf8 --databases  \
           --protocol=tcp --databases --triggers --routines \
           --events --column-statistics=0 --set-gtid-purged=OFF ${DBLIST} > "${FILE}"
 
-log "Dumping DBs COMPLETE.  "
+log "Dumping DBs  COMPLETE.  "
 rm -f "${FILE}.old"
 
 echo "${DUMP_DIR}" > latest

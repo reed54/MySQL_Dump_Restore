@@ -1,4 +1,10 @@
 
+
+
+![CDC 6600 (ca 1964)](img/CDC_6600_Overview.png)
+
+
+
 # MySQL Dump Restore
 
 This repository consists of _bash_ scripts and _Terraform_ configurations to implement infrastructure in **two** AWS accounts.  The purpose of which is to **mysqldump** an RDS instance in one account (SOURCE) and restore the resulting dumped databases in another account (TARGET) with a similar RDS instance.
@@ -18,7 +24,7 @@ Receiving objects: 100% (90/90), 2.72 MiB | 6.59 MiB/s, done.
 Resolving deltas: 100% (27/27), done.
 ```
 
-2. Collect parameters related to your AWS accounts.  Details about the SOURCE and TARGET accounts, the name of the S3 bucket to be used as destination/source of the database dump.  You will need the host strings of your RDS databases as well as root username and password.  Edit the appropriate **variables.tf** files.
+2. Collect parameters related to your AWS accounts.  Details about the SOURCE and TARGET accounts.  You will need the host strings of your RDS databases as well as root username and password.  Edit the appropriate **variables.tf** files.
 
 ### Source EC2 (Terraform/ec2/source_ec2/variables.tf)  
 
@@ -26,7 +32,7 @@ Resolving deltas: 100% (27/27), done.
 |-------------------|----------------------------------------------------------------|
 | region            | AWS region designation.  e.g., us-east-2                       |
 | profile           | Profile within local ~/.aws/credentials file.                  |
-| bucket_name       | Name of the bucket to be shared by the SOURCE and TARGET.      |
+| bucket_name       | This is generated automatically.     |
 | amz-ubuntu-ami    | AMI for both SOURCE and TARGET EC2s                            |
 | source_key_name   | Source EC2 key-pair.  The KP must exist before Terraform apply.|
 | source_account    | Account number for SOURCE Account.                             |
@@ -232,7 +238,7 @@ ubuntu@ip-172-26-0-213:~/dump-restore$ ./02-sync-sql-to-s3.sh
 [2022-01-03 21:46:47+00:00]:
 ```
                      
-## Your Feedback will be Appreciated
+## Your Feedback is Appreciated.
 
 As is often said, hardware eventually breaks and software eventually works.  Let me know your experiences with this work in progress.
 

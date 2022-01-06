@@ -10,10 +10,10 @@ variable "profile" {
   default     = "SOURCE"
 }
 
-variable "bucket_name" {
+variable "bucket_prefix" {
   description = "Name of the bucket to be shared by the SOURCE and TARGET."
   type        = string
-  default     = "matrix-dump-restore"
+  default     = "dump-restore"
 }
 
 variable "amz-ubuntu-ami" {
@@ -28,8 +28,6 @@ variable "source_key_name" {
   type        = string
   default     = "mysql-src-kp"
 }
-
-
 
 variable "source_account" {
   description = "Account number for SOURCE Account."

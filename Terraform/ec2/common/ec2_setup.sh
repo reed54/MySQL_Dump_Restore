@@ -1,6 +1,9 @@
 #!/bin/bash
-sudo apt-get -y update
+sudo apt -y update
 sudo apt install awscli -y
-sudo apt-get install -y git htop sysvbanner tree
-sudo apt-get install mysql-client -y
+sudo apt install -y git htop sysvbanner tree curl unzip
+sudo apt install mysql-client -y
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
 exit

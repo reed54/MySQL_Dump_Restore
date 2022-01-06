@@ -3,7 +3,7 @@
 #
 # get_dump.sh 
 #
-#   Centennial Data Science - James D. Reed May 10, 2021 
+#   Centennial Data Science - James D. Reed January 5, 2022
 #
 LOGFILE="log/get_dump.log"
 RETAIN_NUM_LINES=100000
@@ -42,13 +42,13 @@ log `rm -v ${TMP_DIR}/*`
 
 
 # Source of files in S3 
-SRC_BUCKET="matrix-dump-restore"
+BUCKET=${DUMP_RESTORE_BUCKET}
 
 # Directory on S3 holding the RDS files.
 DUMP_DIR="rds/`cat latest`"
 
 
-FILE="s3://${SRC_BUCKET}/${DUMP_DIR}/dump.sql"
+FILE="s3://${BUCKET}/${DUMP_DIR}/dump.sql"
 log "DB to be fetched: dump.sql"
 log `fetch_file`
 

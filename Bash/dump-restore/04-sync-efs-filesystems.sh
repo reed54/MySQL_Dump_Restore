@@ -3,7 +3,7 @@
 #
 # 04-sync-efs-filesystems.sh : Sync EFS filesystems. 
 #
-#   Centennial Data Science - James D. Reed May 20, 2021 
+#   Centennial Data Science - James D. Reed January 5, 2022
 #
 LOGFILE="log/sync-efs-filesystems.log"
 RETAIN_NUM_LINES=100000
@@ -25,11 +25,10 @@ log "***************************************************************************
 log "Begin sync-efs-filesystems.sh"
 
 # Destination folder where backups are stored
-SRC_BUCKET="array-production-data"
-
+BUCKET=${DUMP_RESTORE_BUCKET}
 FS_ID=("fs-91d18096")
 FS_DIR=("/mnt/arrhub")
-FS_SRC="s3://${SRC_BUCKET}/EFS/fs-59b33ff3/"
+FS_SRC="s3://${BUCKET}/EFS/fs-59b33ff3/"
 
 #echo "FS_ID: ${FS_ID}, FS_DIR: ${FS_DIR}, FS_SRC: ${FS_SRC}"
 
