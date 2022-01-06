@@ -2,5 +2,5 @@
 port=3306
 user=root
 password=<insert_target_db_password>
-host=target-db-1.czxm1atvgaew.us-west-2.rds.amazonaws.com
+host=<insert_host_string_here>
 

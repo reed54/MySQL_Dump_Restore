@@ -2,5 +2,5 @@
 port=3306
 user=root
 password=<insert_source_db_password>
-host="source-db-1.c67gd5jcx3zi.us-west-2.rds.amazonaws.com"
+host=<insert_host_string_hers>
 
