@@ -13,7 +13,7 @@ CDC 6600 (ca 1964), A supercomputer in its day.  RAM: 128K Words of core memory 
 # MySQL Dump Restore
 
 ![Solution Overview](img/solution_overview.png)
-Schematic of solution overview.
+Solution overview.
 
 This repository consists of _bash_ scripts and _Terraform_ configurations to implement infrastructure in **two** AWS accounts.  The purpose of which is to **mysqldump** an RDS instance in one account (SOURCE) and restore the resulting dumped databases in another account (TARGET) with a similar RDS instance.
 
