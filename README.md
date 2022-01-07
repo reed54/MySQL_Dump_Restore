@@ -2,8 +2,13 @@
 
 
 ![CDC 6600 (ca 1964)](img/CDC_6600_Overview.png)
+CDC 6600 (ca 1964), A supercomputer in its day.  RAM: 128K Words of core memory - less than 1MB. 
 
 
+> The illustration above has nothing to do with this Git Repository.  I place it here so that we can marvel at how far we have come since the early days of computer science.  The CDC 6600, designed by Seymour Cray, had a cycle time of 100ns (10 MHz).  It is safe to say that my Apple Watch has a faster, more capable CPU.
+
+
+---
 
 # MySQL Dump Restore
 
@@ -11,7 +16,16 @@ This repository consists of _bash_ scripts and _Terraform_ configurations to imp
 
 ## The  Process  
 
-1. Clone this repository into your local workspace.
+---
+### Preparation
+
+1. Preparations:
+ - Make sure you have Key-Pairs for both the SOURCE and TARGET accounts.
+ - Familiarize yourself with the VPC security gateways and route tables for your environments.
+ - The Terraform configurations should help speed up the process.  Hopefully!
+
+
+2. Clone this repository into your local workspace.
 
 ```
 $ git clone git@github.com:reed54/MySQL_Dump_Restore.git
@@ -24,73 +38,180 @@ Receiving objects: 100% (90/90), 2.72 MiB | 6.59 MiB/s, done.
 Resolving deltas: 100% (27/27), done.
 ```
 
-2. Collect parameters related to your AWS accounts.  Details about the SOURCE and TARGET accounts.  You will need the host strings of your RDS databases as well as root username and password.  Edit the appropriate **variables.tf** files.
+3. Collect parameters related to your AWS accounts.  Details about the SOURCE and TARGET accounts.  You will need the host strings of your RDS databases as well as root username and password.  Edit the appropriate **variables.tf** files.
 
-### Source EC2 (Terraform/ec2/source_ec2/variables.tf)  
+#### Source EC2 (Terraform/ec2/source_ec2/variables.tf)  
 
 |  Variable         |     Description                                                |
 |-------------------|----------------------------------------------------------------|
 | region            | AWS region designation.  e.g., us-east-2                       |
-| profile           | Profile within local ~/.aws/credentials file.                  |
-| bucket_name       | This is generated automatically.     |
-| amz-ubuntu-ami    | AMI for both SOURCE and TARGET EC2s                            |
+| profile           | Profile within local ~/.aws/credentials file.                  | 
+| amz-ubuntu-ami    | AMI for both SOURCE and TARGET EC2s. Ubuntu 20.04 LTS.         |
 | source_key_name   | Source EC2 key-pair.  The KP must exist before Terraform apply.|
-| source_account    | Account number for SOURCE Account.                             |
+| source_account    | Account number for SOURCE Account.  Both account numbers are required. |
 | target_account    | Account number for TARGET Account.                             |
 | vpc_id            | VPC ID where SOURCE RDS instance is located.                   |
-| ec2_subnet_id     | Public Subnet within the VPC for the SOURCE RDS.               |
+| ec2_subnet_id     | Public Subnet within the VPC for the SOURCe ec2.               |
 |                   |                                                                |
 
-### Target EC2 (Terraform/ec2/target_ec2/variables.tf)  
+#### Target EC2 (Terraform/ec2/target_ec2/variables.tf)  
 
 
 |  Variable         |     Description                                                |
 |-------------------|----------------------------------------------------------------|
 | region            | TARGET AWS region designation.  e.g., us-east-2                |
 | profile           | TARGET Profile within local ~/.aws/credentials file.           |
-|                   |                                                                |
-| amz-ubuntu-ami    | AMI for both SOURCE and TARGET EC2s                            |
-| target_key_name   | Source EC2 key-pair.  The KP must exist before Terraform apply.|
-| source_account    | Account number for SOURCE Account.                             |
+| amz-ubuntu-ami    | AMI for both SOURCE and TARGET EC2s. Ubuntu 20.04 LTS          |
+| target_key_name   | Target EC2 key-pair.  The KP must exist before Terraform apply.|
 | target_account    | Account number for TARGET Account.                             |
-| vpc_id            | VPC ID where SOURCE RDS instance is located.                   |
-| ec2_subnet_id     | Public Subnet within the VPC for the TARGET RDS.               |
+| vpc_id            | VPC ID where TARGET RDS instance is located.                   |
+| ec2_subnet_id     | Public Subnet within the VPC for the TARGET ec2.               |
 |                   |                                                                |
 
-If the user wishes to setup a complete test environments with two EC2 virtual machines AND small RDS instances, Terraform configurations are included in _Terraform/rds_.
+If the user wishes to setup a complete test environments with two EC2 virtual machines AND small RDS instances, Terraform configurations are included in _Terraform/rds_.  These must be setup **before** the EC2 instances.
+
+---
+### Creating the EC2s and Setting up Access to the Respective RDS Instances.
 
 
-3. Apply the information gathered in step #2 to the appropriate _variables.tf_ files.
+4. Apply the information gathered in step #2 to the appropriate _variables.tf_ files.  Note, it is important to run the TARGET Terraform configuration **after** the SOURCE configuration.q
 
-```
-$ cd MySQL_Dump_Restore/Terraform/ec2
-$ ls */variables.tf
-source_ec2/variables.tf  target_ec2/variables.tf
-```
+5. Deploy (terraform apply) the SOURCE EC2, S3 and the TARGET EC2.  Following is a compressed output of the _terraform apply_ process.
 
-4. Deploy (terraform apply) the SOURCE EC2, S3 and the TARGET EC2.
 ```
 $ cd MySQL_Dump_Restore/Terraform/ec2/source_ec2
-$ terraform init
-$ terraform plan
 $ terraform apply
+
+aws_iam_role.S3AdminRole: Creating...
+aws_s3_bucket.dump-restore: Creating...
+aws_security_group.Matrix-SG: Creating...
+aws_iam_role.S3AdminRole: Creation complete after 2s [id=S3AdminRole]
+aws_iam_role_policy.S3Policy: Creating...
+aws_iam_instance_profile.ec2_profile: Creating...
+aws_iam_role_policy.S3Policy: Creation complete after 0s [id=S3AdminRole:S3Policy]
+aws_iam_instance_profile.ec2_profile: Creation complete after 1s [id=ec2_profile]
+aws_security_group.Matrix-SG: Creation complete after 3s [id=sg-012eeef7aef905ed6]
+aws_instance.ec2-source: Creating...
+aws_s3_bucket.dump-restore: Creation complete after 4s [id=dump-restore20220107000213270300000001]
+data.aws_iam_policy_document.allow_access_from_another_account: Reading...
+local_file.bucket_id: Creating...
+data.aws_iam_policy_document.allow_access_from_another_account: Read complete after 0s [id=4153769628]
+local_file.bucket_id: Creation complete after 0s [id=b911ad5c5f9a55fbca0435754b3b3827e0df1c2f]
+aws_s3_bucket_policy.allow_access_from_another_account: Creating...
+aws_s3_bucket_policy.allow_access_from_another_account: Creation complete after 0s [id=dump-restore20220107000213270300000001]
+aws_instance.ec2-source: Still creating... [10s elapsed]
+aws_instance.ec2-source: Still creating... [20s elapsed]
+aws_instance.ec2-source: Provisioning with 'file'...
+aws_instance.ec2-source: Still creating... [30s elapsed]
+aws_instance.ec2-source: Still creating... [40s elapsed]
+aws_instance.ec2-source: Still creating... [50s elapsed]
+aws_instance.ec2-source: Still creating... [1m0s elapsed]
+aws_instance.ec2-source: Still creating... [1m10s elapsed]
+aws_instance.ec2-source: Provisioning with 'file'...
+aws_instance.ec2-source: Provisioning with 'file'...
+aws_instance.ec2-source: Provisioning with 'remote-exec'...
+aws_instance.ec2-source (remote-exec): Connecting to remote host via SSH...
+aws_instance.ec2-source (remote-exec):   Host: 35.87.147.23
+aws_instance.ec2-source (remote-exec):   User: ubuntu
+aws_instance.ec2-source (remote-exec):   Password: false
+aws_instance.ec2-source (remote-exec):   Private key: true
+aws_instance.ec2-source (remote-exec):   Certificate: false
+aws_instance.ec2-source (remote-exec):   SSH Agent: false
+aws_instance.ec2-source (remote-exec):   Checking Host Key: false
+aws_instance.ec2-source (remote-exec):   Target Platform: unix
+aws_instance.ec2-source (remote-exec): Connected!
+aws_instance.ec2-source: Creation complete after 1m20s [id=i-0f455db8e36365fb8]
+
+Apply complete! Resources: 8 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+bucket-arn = "arn:aws:s3:::dump-restore20220107000213270300000001"
+ec2-source_IP = "35.87.147.23"
+ec2-source_private_dns = "ip-172-26-0-99.us-west-2.compute.internal"
+ec2-source_public_dns = "ec2-35-87-147-23.us-west-2.compute.amazonaws.com"
+(base) jdreed@Nikola:~/TERRAFORM/EM/MySQL_Dump_Restore/Terraform/ec2/source_ec2$ 
 ```
 
-5. Login to the SOURCE EC2 and setup the _~/.my.cnf_ according to the prototype to gain access to the SOURCE RDS instance.
+6. Deploy the TARGET EC2 in a similar manner.
 
-6. On the SOURCE EC2, execute the backup script **01-backup_mysqldb.sh**.
+```
+$ cd MySQL_Dump_Restore/Terraform/ec2/target_ec2
+$ terraform apply
 
-7. Deploy (terraform apply) the TARGET EC2.
+Changes to Outputs:
+  + ec2-target_IP          = (known after apply)
+  + ec2-target_private_dns = (known after apply)
+  + ec2-target_public_dns  = (known after apply)
+aws_iam_role.S3AdminRole: Creating...
+aws_security_group.Matrix-SG: Creating...
+aws_iam_role.S3AdminRole: Creation complete after 2s [id=S3AdminRole]
+aws_iam_role_policy.S3Policy: Creating...
+aws_iam_instance_profile.ec2_profile: Creating...
+aws_iam_role_policy.S3Policy: Creation complete after 1s [id=S3AdminRole:S3Policy]
+aws_security_group.Matrix-SG: Creation complete after 2s [id=sg-07330c70d2e352159]
+aws_iam_instance_profile.ec2_profile: Creation complete after 1s [id=ec2_profile]
+aws_instance.ec2-target: Creating...
+aws_instance.ec2-target: Still creating... [10s elapsed]
+aws_instance.ec2-target: Still creating... [20s elapsed]
+aws_instance.ec2-target: Provisioning with 'file'...
+aws_instance.ec2-target: Still creating... [30s elapsed]
+aws_instance.ec2-target: Still creating... [40s elapsed]
+aws_instance.ec2-target: Still creating... [50s elapsed]
+aws_instance.ec2-target: Provisioning with 'file'...
+aws_instance.ec2-target: Provisioning with 'file'...
+aws_instance.ec2-target: Provisioning with 'remote-exec'...
+aws_instance.ec2-target (remote-exec): Connecting to remote host via SSH...
+aws_instance.ec2-target (remote-exec):   Host: 35.86.175.246
+aws_instance.ec2-target (remote-exec):   User: ubuntu
+aws_instance.ec2-target (remote-exec):   Password: false
+aws_instance.ec2-target (remote-exec):   Private key: true
+aws_instance.ec2-target (remote-exec):   Certificate: false
+aws_instance.ec2-target (remote-exec):   SSH Agent: false
+aws_instance.ec2-target (remote-exec):   Checking Host Key: false
+aws_instance.ec2-target (remote-exec):   Target Platform: unix
+aws_instance.ec2-target (remote-exec): Connected!
+aws_instance.ec2-target: Creation complete after 57s [id=i-0fdc4387d32e8ef31]
+
+Apply complete! Resources: 5 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+ec2-target_IP = "35.86.175.246"
+ec2-target_private_dns = "ip-172-26-0-183.us-west-2.compute.internal"
+ec2-target_public_dns = "ec2-35-86-175-246.us-west-2.compute.amazonaws.com"
+
+```
+
+7. Login to the SOURCE EC2 and edit the _~/.my.cnf_ with the values required to access the MySQL RDS instance.
+
+---
+### Backup the SOURCE RDS from the SOURCE EC2.
+
+8. On the SOURCE EC2, execute the backup script **01-backup_mysqldb.sh**.
+
+9. Deploy (terraform apply) the TARGET EC2.
 ```
 $ cd MySQL_Dump_Restore/Terraform/ec2/target_ec2
 $ terraform plan
 $ terraform apply
 ```
 
-8. Login to the TARGET EC2 and setup the _~/.my.cnf_ according to the prototype to gain access to the TARGET RDS instance.  After this you should be able to access the RDS by simply typing:  
+10. Login to the TARGET EC2 and setup the _~/.my.cnf_ according to the prototype to gain access to the TARGET RDS instance.  After this you should be able to access the RDS by simply typing:  
 
 ```
-$ mysql  
+Linux ip-172-26-0-15 5.11.0-1022-aws #23~20.04.1-Ubuntu SMP Mon Nov 15 14:03:19 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux
+ubuntu@ip-172-26-0-15:~$ source ~/.profile
+ #####
+#     #   ####   #    #  #####    ####   ######
+#        #    #  #    #  #    #  #    #  #
+ #####   #    #  #    #  #    #  #       #####
+      #  #    #  #    #  #####   #       #
+#     #  #    #  #    #  #   #   #    #  #
+ #####    ####    ####   #    #   ####   ######
+
+ubuntu@ip-172-26-0-15:~$ mysql
+
 Welcome to the MariaDB monitor.  Commands end with ; or \g.
 Your MySQL connection id is 22  
 Server version: 5.7.12 MySQL Community Server (GPL)  
@@ -98,8 +219,7 @@ Server version: 5.7.12 MySQL Community Server (GPL)
 Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.  
 
 Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.  
-```
-```
+
 MySQL [(none)]` show databases;`  
 +--------------------+  
 | Database           |    
@@ -114,7 +234,7 @@ MySQL [(none)]` show databases;`
 
 MySQL [(none)]>
 ```
-9.  Still logged into the SOURCE EC2, execute the **02-sync-sql-to-s3.sh** script.
+11.  Still logged into the SOURCE EC2, execute the **02-sync-sql-to-s3.sh** script.
 ```
 $ cd dump-restore
 $ ./02-sync-sql-to-s3.sh
@@ -131,112 +251,66 @@ $ ./02-sync-sql-to-s3.sh
 [2022-01-01 23:25:55+00:00]:
 ```
 
-10. Login to the TARGET EC2 and execute the **02-restore_mysqldb.sh**
+12. Login to the TARGET EC2 and execute the **03-restore_mysqldb.sh**
 ```
-$ cd dump-restore
-```
+Last login: Thu Jan  6 22:25:32 2022 from 64.98.52.202
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
 
-## Detailed Instructions
+#######
+   #       ##    #####    ####   ######   #####
+   #      #  #   #    #  #    #  #          #
+   #     #    #  #    #  #       #####      #
+   #     ######  #####   #  ###  #          #
+   #     #    #  #   #   #    #  #          #
+   #     #    #  #    #   ####   ######     #
 
-1. Preparations:
- - Make sure you have Key-Pairs for both the SOURCE and TARGET accounts.
- - Familiarize yourself with the VPC security gateways and route tables for your environments.
- - The Terraform configurations should help speed up the process.  Hopefully!
+ubuntu@ip-172-26-0-235:~$ cd dump-restore
+ubuntu@ip-172-26-0-235:~/dump-restore$ ./03-restore_mysqldb.sh
+[2022-01-06 23:42:56+00:00]: ****************************************
+[2022-01-06 23:42:56+00:00]: Begin restore-mysqldb.sh
+[2022-01-06 23:42:56+00:00]: ----------------------------------------
+[2022-01-06 23:42:56+00:00]: Restoring DBs from s3://dump-restore20220106042450199300000001//tmp/rds//rds-2022-01-06/dump.sql ...
+[2022-01-06 23:42:56+00:00]: -------------
+[2022-01-06 23:42:57+00:00]: /tmp/rds//rds-2022-01-06/dump.sql exists. No need to download it from S3.
+[2022-01-06 23:42:57+00:00]: Restoring DB START from /tmp/rds//rds-2022-01-06/dump.sql
+[2022-01-06 23:44:46+00:00]: restore-mysqldb.sh /tmp/rds//rds-2022-01-06/dump.sql  COMPLETE.
+[2022-01-06 23:44:46+00:00]: Databases restoration complete.
+[2022-01-06 23:44:46+00:00]: Complete execution restore-mysqldb.sh
+[2022-01-06 23:44:46+00:00]: ****************************************
+[2022-01-06 23:44:46+00:00]:
 
+ubuntu@ip-172-26-0-183:~$ mysql
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 80
+Server version: 5.7.12 MySQL Community Server (GPL)
 
-2. Clone this repository into a your local workspace.
+Copyright (c) 2000, 2021, Oracle and/or its affiliates.
 
-   $ git clone https://github.com/reed54/MySQL_Dump_Restore.git
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
 
-3. Parameters related to your accounts will have to be set in the Terraform configuration files.  Refer to the "Variable" tables above.
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
 
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| employees          |
+| employees2         |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+6 rows in set (0.00 sec)
 
-4.  If you have used Terraform before, here is a snippit of the process:
+mysql>
 
-```
-$ cd Terraform/source_ec2
-# Edit variables.tf
-$ terraform init
-$ terraform plan
-# Review the plan
-$ terraform apply
-
-$ cd ../target_ec2
-# Repeat the steps above.
-```
-
-What follows is a step-by-step walkthrough using the Bash scripts to transfer the databases from SOURCE to TARGET.
-    
- 
-    Centennial Data Science - James D. Reed April 28, 2021
-## Backup the SOURCE Databases
-
-### 01-backup_mysqldb.sh
-
-```
-ubuntu@ip-172-26-0-213:~/dump-restore$ ./01-backup_mysqldb.sh
-[2022-01-03 21:29:53+00:00]: ****************************************
-[2022-01-03 21:29:53+00:00]: Begin backup-mysqldb.sh
-[2022-01-03 21:29:53+00:00]: DBLLIST: employees
-[2022-01-03 21:29:53+00:00]: ----------------------------------------
-[2022-01-03 21:29:53+00:00]: Dumping DBs: employees to /tmp/rds/rds-2022-01-03/dump.sql ...
-[2022-01-03 21:29:53+00:00]: ----------------------------------------
-[2022-01-03 21:29:53+00:00]: Dumping DB START
-[2022-01-03 21:29:57+00:00]: Dumping DBs COMPLETE.
-[2022-01-03 21:29:57+00:00]: Databases backup complete.
-[2022-01-03 21:29:57+00:00]: -rw-rw-r-- 1 ubuntu ubuntu 161M Jan 3 21:29 /tmp/rds/rds-2022-01-03/dump.sql
-[2022-01-03 21:29:57+00:00]: Complete execution backup-mysqldb.sh
-[2022-01-03 21:29:57+00:00]: ****************************************
-```
-
-This script executes mysqldump on all of the databases in the RDS instance, except for the following databases:
-+ mysql
-+ information_schema 
-+ performance_schema
-+ sys
-
-No arguments are required. A log file is appended to *backup-mysqldb.log*.  
-
-## Synchronize the databases to the S3
-### 02-sync-sql-to-s3.sh
-This script syncronizes the latest backup to S3 **array-production-data**.
-
-```
-[ubuntu@ip-172-26-0-213:~/dump-restore$ ./02-sync-sql-to-s3.sh
-[2022-01-03 21:46:44+00:00]: ****************************************
-[2022-01-03 21:46:44+00:00]: Begin 02-sync-sql-to-s3.sh
-[2022-01-03 21:46:44+00:00]:
-[2022-01-03 21:46:44+00:00]: ----------------------------------------
-[2022-01-03 21:46:44+00:00]: Synching /tmp/rds/rds-2022-01-03/ to s3://matrix-dump-restore/rds/rds-2022-01-03/ ...
-[2022-01-03 21:46:44+00:00]: ----------------------------------------
-[2022-01-03 21:46:44+00:00]:
-[2022-01-03 21:46:46+00:00]:
-[2022-01-03 21:46:47+00:00]: 2022-01-03 21:46:46 168375779 rds/rds-2022-01-03/dump.sql
-[2022-01-03 21:46:47+00:00]: End   02-sync-sql-to-s3.sh
-[2022-01-03 21:46:47+00:00]: ****************************************
-[2022-01-03 21:46:47+00:00]:
 ```
 
 
-## Restore SOURCE Databases onto TARGET RDS instance
-### ./03-restore_mysqldb.sh
-This script restores the dump of databases to the TARGET RDS instance.  Note, this step is completed from the TARGET EC2.
-
-```
-ubuntu@ip-172-26-0-213:~/dump-restore$ ./02-sync-sql-to-s3.sh
-[2022-01-03 21:46:44+00:00]: ****************************************
-[2022-01-03 21:46:44+00:00]: Begin 02-sync-sql-to-s3.sh
-[2022-01-03 21:46:44+00:00]:
-[2022-01-03 21:46:44+00:00]: ----------------------------------------
-[2022-01-03 21:46:44+00:00]: Synching /tmp/rds/rds-2022-01-03/ to s3://matrix-dump-restore/rds/rds-2022-01-03/ ...
-[2022-01-03 21:46:44+00:00]: ----------------------------------------
-[2022-01-03 21:46:44+00:00]:
-[2022-01-03 21:46:46+00:00]:
-[2022-01-03 21:46:47+00:00]: 2022-01-03 21:46:46 168375779 rds/rds-2022-01-03/dump.sql
-[2022-01-03 21:46:47+00:00]: End   02-sync-sql-to-s3.sh
-[2022-01-03 21:46:47+00:00]: ****************************************
-[2022-01-03 21:46:47+00:00]:
-```
                      
 ## Your Feedback is Appreciated.
 

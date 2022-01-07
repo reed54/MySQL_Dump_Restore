@@ -16,7 +16,7 @@ resource "aws_instance" "ec2-target" {
   monitoring             = true
   key_name               = var.target_key_name
   user_data              = file("../common/ec2_setup.sh")
-  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
+  iam_instance_profile   = "${aws_iam_instance_profile.ec2_profile.name}"
 
   provisioner "file" {
     source      = "../../../Bash/dump-restore"
