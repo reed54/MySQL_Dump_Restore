@@ -54,15 +54,3 @@ variable "db_subnet_group" {
   description = "List of subnets where RDS service exists."
   default     = ["subnet-080551b144e46280e", "subnet-0e50f7bc5e85ada07", "subnet-089139a0ef43ff7f1"]
 }
-
-variable "vpc_id" {
-  type        = string
-  description = "VPC ID where RDS is situated."
-  default     = "vpc-08fea005441201d41"
-}
-
-variable "ec2_subnet_id" {
-  type        = string
-  description = "Public Subnet within the VPC for the RDS."
-  default     = "subnet-06dde741be3f98267"
-}

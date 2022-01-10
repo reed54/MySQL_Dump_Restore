@@ -64,11 +64,6 @@ variable "MatrixHubVPCCidrPrefix" {
   default = "172.26"
 }
 
-variable "master_password" {
-  description = "DB password for user root."
-  type        = string
-  default     = "Letmein2015"
-}
 
 variable "owner" {
   description = "Owner department."

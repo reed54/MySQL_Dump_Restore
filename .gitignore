@@ -31,3 +31,5 @@ override.tf.json
 
 # Log files
 *.log
+.my.cnf
+.terraform*

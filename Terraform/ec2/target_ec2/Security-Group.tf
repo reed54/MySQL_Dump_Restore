@@ -1,7 +1,7 @@
 resource "aws_security_group" "Matrix-SG" {
   name        = "Matrix Security Group"
   description = "Access to database"
-  vpc_id      = var.vpc_id
+  vpc_id      = data.aws_vpc.selected.id
 
   ingress {
     from_port   = 5432

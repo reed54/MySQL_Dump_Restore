@@ -59,14 +59,3 @@ variable "db_subnet_group" {
   default     = ["subnet-080551b144e46280e", "subnet-0e50f7bc5e85ada07", "subnet-089139a0ef43ff7f1"]
 }
 
-variable "vpc_id" {
-  type        = string
-  description = "VPC ID where RDS is situated."
-  default     = "vpc-05d47e76047ad2a38"
-}
-
-variable "ec2_subnet_id" {
-  type        = string
-  description = "Public Subnet within the VPC for the RDS."
-  default     = "subnet-0b1bc78ea9a885333"
-}

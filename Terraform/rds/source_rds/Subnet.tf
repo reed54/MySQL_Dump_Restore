@@ -103,3 +103,12 @@ resource "aws_subnet" "subnet-Matrix--Private-C" {
 }
 
 
+resource "local_file" "private_subnets" {
+  content  = "[${aws_subnet.subnet-Matrix--Private-A.id},${aws_subnet.subnet-Matrix--Private-B.id} ,${aws_subnet.subnet-Matrix--Private-C.id} ]"
+  filename = "rds_source_private_subnets.tmp"
+}
+
+resource "local_file" "public_subnets" {
+  content  = "[${aws_subnet.subnet-Matrix--Public-A.id},${aws_subnet.subnet-Matrix--Public-B.id} ,${aws_subnet.subnet-Matrix--Public-C.id} ]"
+  filename = "rds_source_public_subnets.tmp"
+}
